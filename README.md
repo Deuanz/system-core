@@ -9,15 +9,15 @@ This project is built on the principle of "Single Source of Truth." By leveragin
 
 ### 🛠 Tech Stack & Exploration
 
-- **Monorepo Management**: Bun Workspaces (Efficient dependency handling and shared logic)
+- **Monorepo Management**: [Bun Workspaces](https://bun.sh/docs/install/workspaces) (Efficient dependency handling and shared logic)
 
-- **Backend**: Golang (Concurrency patterns and high-performance API design)
+- **Backend**: [Golang](https://go.dev/) (Concurrency patterns and high-performance API design)
 
-- **Frontend**: React + Vite (Fast, modern UI development)
+- **Frontend**: [React](https://react.dev/) + [Vite](https://vitejs.dev/) (Fast, modern UI development)
 
-- **Language**: TypeScript (Ensuring end-to-end type safety)
+- **Language**: [TypeScript](https://www.typescriptlang.org/) (Ensuring end-to-end type safety)
 
-- **Database**: PostgreSQL (Reliable relational data foundations)
+- **Database**: [PostgreSQL](https://www.postgresql.org/) (Reliable relational data foundations)
 
 ### 🏗 System Architecture
 
