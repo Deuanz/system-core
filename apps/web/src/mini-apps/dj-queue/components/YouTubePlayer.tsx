@@ -40,22 +40,28 @@ declare namespace YT {
 let apiLoaded = false;
 let apiLoading: Promise<void> | null = null;
 
-function loadYouTubeApi(): Promise<void> {
+export function loadYouTubeApi(): Promise<void> {
   if (apiLoaded && window.YT?.Player) return Promise.resolve();
   if (apiLoading) return apiLoading;
 
   apiLoading = new Promise((resolve) => {
-    if (window.YT?.Player) {
+    let poll: number | undefined;
+
+    const finish = () => {
+      if (poll !== undefined) window.clearInterval(poll);
       apiLoaded = true;
       resolve();
+    };
+
+    if (window.YT?.Player) {
+      finish();
       return;
     }
 
     const prev = window.onYouTubeIframeAPIReady;
     window.onYouTubeIframeAPIReady = () => {
-      apiLoaded = true;
       prev?.();
-      resolve();
+      finish();
     };
 
     if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
@@ -63,6 +69,11 @@ function loadYouTubeApi(): Promise<void> {
       tag.src = "https://www.youtube.com/iframe_api";
       document.head.appendChild(tag);
     }
+
+    // Script may already be cached and the ready callback may have fired.
+    poll = window.setInterval(() => {
+      if (window.YT?.Player) finish();
+    }, 50);
   });
 
   return apiLoading;
@@ -78,10 +89,11 @@ export function YouTubePlayer({ videoId, isHost, onEnded }: Props) {
   const mountId = useId().replace(/:/g, "");
   const elementId = `dj-queue-yt-${mountId}`;
   const playerRef = useRef<YT.Player | null>(null);
-  const readyRef = useRef(false);
   const videoIdRef = useRef(videoId);
   const isHostRef = useRef(isHost);
   const onEndedRef = useRef(onEnded);
+  const syncedVideoIdRef = useRef<string | null>(null);
+  const [playerReady, setPlayerReady] = useState(false);
   const [needsPlayTap, setNeedsPlayTap] = useState(false);
   const [playerError, setPlayerError] = useState<string | null>(null);
 
@@ -89,34 +101,44 @@ export function YouTubePlayer({ videoId, isHost, onEnded }: Props) {
   isHostRef.current = isHost;
   onEndedRef.current = onEnded;
 
-  function syncVideo(): boolean {
+  function syncVideo(force = false): boolean {
     const player = playerRef.current;
     const id = videoIdRef.current;
-    if (!player || !readyRef.current || !id || !isHostRef.current) return false;
+    if (!player || !playerReady || !id || !isHostRef.current) return false;
+    if (!force && syncedVideoIdRef.current === id) return true;
 
     setPlayerError(null);
+    syncedVideoIdRef.current = id;
     player.loadVideoById(id);
+    player.playVideo();
     return true;
   }
 
   function handlePlayTap() {
     const player = playerRef.current;
-    if (!player || !readyRef.current) return;
+    if (!player || !playerReady) return;
 
     const state = player.getPlayerState();
     if (state === window.YT.PlayerState.CUED || state === window.YT.PlayerState.PAUSED) {
       player.playVideo();
     } else {
-      syncVideo();
+      syncVideo(true);
     }
     setNeedsPlayTap(false);
   }
 
+  function clearPlayerElement() {
+    const el = document.getElementById(elementId);
+    if (el) el.replaceChildren();
+  }
+
   useEffect(() => {
     if (!isHost) {
-      readyRef.current = false;
+      syncedVideoIdRef.current = null;
+      setPlayerReady(false);
       playerRef.current?.destroy();
       playerRef.current = null;
+      clearPlayerElement();
       return;
     }
 
@@ -125,13 +147,13 @@ export function YouTubePlayer({ videoId, isHost, onEnded }: Props) {
     loadYouTubeApi().then(() => {
       if (cancelled) return;
 
+      clearPlayerElement();
       const el = document.getElementById(elementId);
       if (!el) return;
 
       playerRef.current = new window.YT.Player(elementId, {
         height: "100%",
         width: "100%",
-        videoId: videoIdRef.current ?? undefined,
         playerVars: {
           autoplay: 1,
           controls: 1,
@@ -142,13 +164,14 @@ export function YouTubePlayer({ videoId, isHost, onEnded }: Props) {
         },
         events: {
           onReady: () => {
-            readyRef.current = true;
-            syncVideo();
+            if (cancelled) return;
+            setPlayerReady(true);
           },
           onStateChange: (event) => {
             if (!isHostRef.current) return;
 
             if (event.data === window.YT.PlayerState.ENDED) {
+              syncedVideoIdRef.current = null;
               onEndedRef.current();
             } else if (event.data === window.YT.PlayerState.PLAYING) {
               setNeedsPlayTap(false);
@@ -161,6 +184,7 @@ export function YouTubePlayer({ videoId, isHost, onEnded }: Props) {
             }
           },
           onError: () => {
+            syncedVideoIdRef.current = null;
             setPlayerError("This video can't be played. Try skipping to the next song.");
             setNeedsPlayTap(false);
           },
@@ -170,23 +194,18 @@ export function YouTubePlayer({ videoId, isHost, onEnded }: Props) {
 
     return () => {
       cancelled = true;
-      readyRef.current = false;
+      syncedVideoIdRef.current = null;
+      setPlayerReady(false);
       playerRef.current?.destroy();
       playerRef.current = null;
+      clearPlayerElement();
     };
   }, [isHost, elementId]);
 
   useEffect(() => {
-    if (!isHost || !videoId) return;
-
-    if (syncVideo()) return;
-
-    const interval = setInterval(() => {
-      if (syncVideo()) clearInterval(interval);
-    }, 250);
-
-    return () => clearInterval(interval);
-  }, [videoId, isHost]);
+    if (!isHost || !videoId || !playerReady) return;
+    syncVideo();
+  }, [videoId, isHost, playerReady]);
 
   return (
     <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-default bg-black">

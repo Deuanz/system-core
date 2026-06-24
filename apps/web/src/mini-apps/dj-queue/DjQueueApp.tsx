@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { QueueList } from "./components/QueueList";
 import { SearchBar } from "./components/SearchBar";
-import { YouTubePlayer } from "./components/YouTubePlayer";
+import { loadYouTubeApi, YouTubePlayer } from "./components/YouTubePlayer";
 import { setDisplayName, useRoom } from "./hooks/useRoom";
 
 type Props = {
@@ -13,6 +13,10 @@ export function DjQueueApp({ roomId, onLeave }: Props) {
   const [name, setName] = useState(() => localStorage.getItem("dj-queue-name") ?? "");
   const { state, isHost, connected, error, addToQueue, skip, trackEnded, becomeHost } =
     useRoom(roomId);
+
+  useEffect(() => {
+    void loadYouTubeApi();
+  }, []);
 
   function saveName() {
     setDisplayName(name);
