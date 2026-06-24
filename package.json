@@ -7,6 +7,11 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
+  "scripts": {
+    "dev": "bun run --filter server dev & bun run --filter web dev",
+    "dev:server": "bun run --filter server dev",
+    "dev:web": "bun run --filter web dev"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },
