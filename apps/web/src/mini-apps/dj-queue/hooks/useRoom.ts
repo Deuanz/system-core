@@ -38,14 +38,21 @@ export function useRoom(roomId: string) {
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const pendingRef = useRef<WsClientMessage[]>([]);
 
   const send = useCallback((message: WsClientMessage) => {
-    wsRef.current?.send(JSON.stringify(message));
+    const ws = wsRef.current;
+    if (ws?.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(message));
+      return;
+    }
+    pendingRef.current.push(message);
   }, []);
 
   useEffect(() => {
     const ws = new WebSocket(wsUrl(roomId, clientId));
     wsRef.current = ws;
+    pendingRef.current = [];
 
     ws.onopen = () => {
       setConnected(true);
@@ -55,6 +62,10 @@ export function useRoom(roomId: string) {
         clientId,
         requestedBy: getDisplayName(),
       });
+      for (const message of pendingRef.current) {
+        ws.send(JSON.stringify(message));
+      }
+      pendingRef.current = [];
     };
 
     ws.onmessage = (event) => {
