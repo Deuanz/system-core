@@ -10,7 +10,9 @@
   "scripts": {
     "dev": "bun run --filter server dev & bun run --filter web dev",
     "dev:server": "bun run --filter server dev",
-    "dev:web": "bun run --filter web dev"
+    "dev:web": "bun run --filter web dev",
+    "build": "bun run --filter web build",
+    "start": "bun run --filter server start"
   },
   "devDependencies": {
     "@types/bun": "latest"

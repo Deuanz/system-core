@@ -1,5 +1,6 @@
 import type { WsClientMessage } from "@system-core/shared-types";
 import { generateRoomId, getOrCreateRoom, listRooms, type RoomSocketData } from "./rooms";
+import { serveStatic } from "./static";
 import { resolveYouTubeVideo, searchYouTube } from "./youtube";
 
 const PORT = Number(process.env.PORT ?? 3001);
@@ -19,7 +20,7 @@ function json(data: unknown, status = 200) {
 
 Bun.serve<RoomSocketData>({
   port: PORT,
-  fetch(req, server) {
+  fetch: async (req, server) => {
     const url = new URL(req.url);
 
     if (req.method === "OPTIONS") {
@@ -62,6 +63,9 @@ Bun.serve<RoomSocketData>({
       }
       return new Response("WebSocket upgrade failed", { status: 400 });
     }
+
+    const staticResponse = await serveStatic(url.pathname, req.method);
+    if (staticResponse) return staticResponse;
 
     return new Response("Not found", { status: 404 });
   },
