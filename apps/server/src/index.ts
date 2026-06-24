@@ -1,5 +1,10 @@
 import type { WsClientMessage } from "@system-core/shared-types";
-import { generateRoomId, getOrCreateRoom, listRooms, type RoomSocketData } from "./rooms";
+import {
+  generateRoomId,
+  getOrCreateRoom,
+  listRooms,
+  type RoomSocketData,
+} from "./rooms";
 import { serveStatic } from "./static";
 import { resolveYouTubeVideo, searchYouTube } from "./youtube";
 
@@ -49,7 +54,9 @@ Bun.serve<RoomSocketData>({
     if (resolveMatch && req.method === "GET") {
       const urlParam = url.searchParams.get("url") ?? "";
       return resolveYouTubeVideo(urlParam)
-        .then((video) => (video ? json({ video }) : json({ error: "Invalid YouTube URL" }, 400)))
+        .then((video) =>
+          video ? json({ video }) : json({ error: "Invalid YouTube URL" }, 400),
+        )
         .catch((err: Error) => json({ error: err.message }, 502));
     }
 
@@ -97,17 +104,32 @@ Bun.serve<RoomSocketData>({
           break;
         case "track_ended":
           if (!room.onTrackEnded(clientId)) {
-            ws.send(JSON.stringify({ type: "error", message: "Only the host can control playback" }));
+            ws.send(
+              JSON.stringify({
+                type: "error",
+                message: "Only the host can control playback",
+              }),
+            );
           }
           break;
         case "skip":
           if (!room.skipTrack(clientId)) {
-            ws.send(JSON.stringify({ type: "error", message: "Only the host can skip tracks" }));
+            ws.send(
+              JSON.stringify({
+                type: "error",
+                message: "Only the host can skip tracks",
+              }),
+            );
           }
           break;
         case "become_host":
           if (!room.becomeHost(clientId)) {
-            ws.send(JSON.stringify({ type: "error", message: "Could not become host" }));
+            ws.send(
+              JSON.stringify({
+                type: "error",
+                message: "Could not become host",
+              }),
+            );
           }
           break;
       }
@@ -119,4 +141,4 @@ Bun.serve<RoomSocketData>({
   },
 });
 
-console.log(`DJ Queue server running on http://localhost:${PORT}`);
+console.log(`i Queuez server running on http://localhost:${PORT}`);

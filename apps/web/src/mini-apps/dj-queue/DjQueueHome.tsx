@@ -38,7 +38,7 @@ export function DjQueueHome({ onJoin }: Props) {
           <p className="mb-2 text-sm font-medium uppercase tracking-widest text-violet-400">
             Mini-app
           </p>
-          <h1 className="text-4xl font-bold tracking-tight">DJ Queue</h1>
+          <h1 className="text-4xl font-bold tracking-tight">i Queuez</h1>
           <p className="mt-3 text-muted">
             Search YouTube, build a shared playlist, and let the room play through the list.
           </p>

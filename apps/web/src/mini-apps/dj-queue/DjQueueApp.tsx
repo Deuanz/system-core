@@ -29,7 +29,7 @@ export function DjQueueApp({ roomId, onLeave }: Props) {
       <header className="border-b border-default bg-secondary/50 px-4 py-4">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-xl font-bold tracking-tight">DJ Queue</h1>
+            <h1 className="text-xl font-bold tracking-tight">i Queuez</h1>
             <p className="text-sm text-muted">
               Room <span className="font-mono text-violet-300">{roomId}</span>
               {!connected && " · reconnecting..."}
