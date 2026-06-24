@@ -1,5 +1,5 @@
 import type { WsClientMessage } from "@system-core/shared-types";
-import { generateRoomId, getOrCreateRoom, type RoomSocketData } from "./rooms";
+import { generateRoomId, getOrCreateRoom, listRooms, type RoomSocketData } from "./rooms";
 import { resolveYouTubeVideo, searchYouTube } from "./youtube";
 
 const PORT = Number(process.env.PORT ?? 3001);
@@ -24,6 +24,10 @@ Bun.serve<RoomSocketData>({
 
     if (req.method === "OPTIONS") {
       return new Response(null, { headers: corsHeaders });
+    }
+
+    if (url.pathname === "/api/rooms" && req.method === "GET") {
+      return json({ rooms: listRooms() });
     }
 
     if (url.pathname === "/api/rooms" && req.method === "POST") {

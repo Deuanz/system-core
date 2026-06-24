@@ -1,4 +1,4 @@
-import type { QueueItem, RoomState } from "@system-core/shared-types";
+import type { QueueItem, RoomState, RoomSummary } from "@system-core/shared-types";
 
 type RoomClient = {
   ws: ServerWebSocket<RoomSocketData>;
@@ -23,6 +23,10 @@ export class Room {
     this.id = id;
   }
 
+  get clientCount(): number {
+    return this.clients.size;
+  }
+
   getState(): RoomState {
     return {
       roomId: this.id,
@@ -30,6 +34,15 @@ export class Room {
       nowPlaying: this.nowPlaying,
       isPlaying: this.isPlaying,
       hostClientId: this.hostClientId,
+    };
+  }
+
+  toSummary(): RoomSummary {
+    return {
+      roomId: this.id,
+      clientCount: this.clientCount,
+      queueLength: this.queue.length,
+      nowPlayingTitle: this.nowPlaying?.title ?? null,
     };
   }
 
@@ -135,4 +148,11 @@ export function getOrCreateRoom(roomId: string): Room {
 
 export function generateRoomId(): string {
   return crypto.randomUUID().slice(0, 8);
+}
+
+export function listRooms(): RoomSummary[] {
+  return [...rooms.values()]
+    .filter((room) => room.clientCount > 0)
+    .map((room) => room.toSummary())
+    .sort((a, b) => b.clientCount - a.clientCount);
 }

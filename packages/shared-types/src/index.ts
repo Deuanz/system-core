@@ -16,6 +16,13 @@ export type RoomState = {
   hostClientId: string | null;
 };
 
+export type RoomSummary = {
+  roomId: string;
+  clientCount: number;
+  queueLength: number;
+  nowPlayingTitle: string | null;
+};
+
 export type YouTubeSearchResult = {
   videoId: string;
   title: string;

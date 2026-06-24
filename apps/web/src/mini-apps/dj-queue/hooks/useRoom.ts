@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   RoomState,
+  RoomSummary,
   WsClientMessage,
   WsServerMessage,
   YouTubeSearchResult,
@@ -139,4 +140,11 @@ export async function createRoom(): Promise<string> {
   const res = await fetch("/api/rooms", { method: "POST" });
   const data = (await res.json()) as { roomId: string };
   return data.roomId;
+}
+
+export async function listRooms(): Promise<RoomSummary[]> {
+  const res = await fetch("/api/rooms");
+  const data = (await res.json()) as { rooms?: RoomSummary[]; error?: string };
+  if (!res.ok) throw new Error(data.error ?? "Could not load rooms");
+  return data.rooms ?? [];
 }
