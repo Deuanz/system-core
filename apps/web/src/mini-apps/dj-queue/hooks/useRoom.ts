@@ -107,8 +107,15 @@ export function useRoom(roomId: string, accessCode?: string) {
   }, [clientId, send]);
 
   const becomeHost = useCallback(() => {
-    send({ type: "become_host", clientId });
+    send({ type: "become_host", clientId, requestedBy: getDisplayName() });
   }, [clientId, send]);
+
+  const respondHostRequest = useCallback(
+    (approved: boolean) => {
+      send({ type: "respond_host_request", clientId, approved });
+    },
+    [clientId, send],
+  );
 
   return {
     clientId,
@@ -120,6 +127,7 @@ export function useRoom(roomId: string, accessCode?: string) {
     skip,
     trackEnded,
     becomeHost,
+    respondHostRequest,
   };
 }
 

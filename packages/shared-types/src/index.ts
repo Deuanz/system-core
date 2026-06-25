@@ -8,6 +8,11 @@ export type QueueItem = {
   addedAt: number;
 };
 
+export type HostRequest = {
+  clientId: string;
+  requestedBy: string;
+};
+
 export type RoomState = {
   roomId: string;
   isPrivate: boolean;
@@ -15,6 +20,7 @@ export type RoomState = {
   nowPlaying: QueueItem | null;
   isPlaying: boolean;
   hostClientId: string | null;
+  pendingHostRequest: HostRequest | null;
 };
 
 export type RoomSummary = {
@@ -47,7 +53,8 @@ export type WsClientMessage =
     }
   | { type: "track_ended"; clientId: string }
   | { type: "skip"; clientId: string }
-  | { type: "become_host"; clientId: string };
+  | { type: "become_host"; clientId: string; requestedBy: string }
+  | { type: "respond_host_request"; clientId: string; approved: boolean };
 
 export type WsServerMessage =
   | { type: "state"; state: RoomState; clientId: string; isHost: boolean }

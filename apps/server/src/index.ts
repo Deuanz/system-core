@@ -135,11 +135,21 @@ Bun.serve<RoomSocketData>({
           }
           break;
         case "become_host":
-          if (!room.becomeHost(clientId)) {
+          if (!room.becomeHost(clientId, parsed.requestedBy)) {
             ws.send(
               JSON.stringify({
                 type: "error",
-                message: "Could not become host",
+                message: "Could not request DJ role",
+              }),
+            );
+          }
+          break;
+        case "respond_host_request":
+          if (!room.respondHostRequest(clientId, parsed.approved)) {
+            ws.send(
+              JSON.stringify({
+                type: "error",
+                message: "Only the current DJ can approve or deny requests",
               }),
             );
           }

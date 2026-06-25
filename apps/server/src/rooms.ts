@@ -1,4 +1,4 @@
-import type { QueueItem, RoomState, RoomSummary } from "@system-core/shared-types";
+import type { HostRequest, QueueItem, RoomState, RoomSummary } from "@system-core/shared-types";
 
 type RoomClient = {
   ws: ServerWebSocket<RoomSocketData>;
@@ -20,6 +20,7 @@ export class Room {
   isPlaying = false;
   private clients = new Map<string, RoomClient>();
   hostClientId: string | null = null;
+  pendingHostRequest: HostRequest | null = null;
 
   constructor(id: string, isPrivate = false, accessCode?: string) {
     this.id = id;
@@ -39,6 +40,7 @@ export class Room {
       nowPlaying: this.nowPlaying,
       isPlaying: this.isPlaying,
       hostClientId: this.hostClientId,
+      pendingHostRequest: this.pendingHostRequest,
     };
   }
 
@@ -82,6 +84,9 @@ export class Room {
     if (this.hostClientId === clientId) {
       const next = this.clients.keys().next();
       this.hostClientId = next.done ? null : next.value;
+      this.pendingHostRequest = null;
+    } else if (this.pendingHostRequest?.clientId === clientId) {
+      this.pendingHostRequest = null;
     }
 
     this.broadcast();
@@ -121,9 +126,31 @@ export class Room {
     return true;
   }
 
-  becomeHost(clientId: string): boolean {
+  becomeHost(clientId: string, requestedBy: string): boolean {
     if (!this.clients.has(clientId)) return false;
-    this.hostClientId = clientId;
+    if (this.hostClientId === clientId) return true;
+
+    if (!this.hostClientId) {
+      this.hostClientId = clientId;
+      this.pendingHostRequest = null;
+      this.broadcast();
+      return true;
+    }
+
+    this.pendingHostRequest = { clientId, requestedBy };
+    this.broadcast();
+    return true;
+  }
+
+  respondHostRequest(hostClientId: string, approved: boolean): boolean {
+    if (this.hostClientId !== hostClientId) return false;
+    if (!this.pendingHostRequest) return false;
+
+    if (approved && this.clients.has(this.pendingHostRequest.clientId)) {
+      this.hostClientId = this.pendingHostRequest.clientId;
+    }
+
+    this.pendingHostRequest = null;
     this.broadcast();
     return true;
   }
