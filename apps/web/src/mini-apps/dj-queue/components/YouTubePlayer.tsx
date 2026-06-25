@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 declare global {
   interface Window {
@@ -10,7 +10,7 @@ declare global {
 declare namespace YT {
   class Player {
     constructor(
-      elementId: string,
+      element: string | HTMLElement,
       options: {
         height?: string;
         width?: string;
@@ -86,8 +86,7 @@ type Props = {
 };
 
 export function YouTubePlayer({ videoId, isHost, onEnded }: Props) {
-  const mountId = useId().replace(/:/g, "");
-  const elementId = `dj-queue-yt-${mountId}`;
+  const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YT.Player | null>(null);
   const videoIdRef = useRef(videoId);
   const isHostRef = useRef(isHost);
@@ -127,31 +126,25 @@ export function YouTubePlayer({ videoId, isHost, onEnded }: Props) {
     setNeedsPlayTap(false);
   }
 
-  function clearPlayerElement() {
-    const el = document.getElementById(elementId);
-    if (el) el.replaceChildren();
+  function destroyPlayer() {
+    playerRef.current?.destroy();
+    playerRef.current = null;
+    syncedVideoIdRef.current = null;
+    setPlayerReady(false);
   }
 
   useEffect(() => {
     if (!isHost) {
-      syncedVideoIdRef.current = null;
-      setPlayerReady(false);
-      playerRef.current?.destroy();
-      playerRef.current = null;
-      clearPlayerElement();
+      destroyPlayer();
       return;
     }
 
     let cancelled = false;
 
     loadYouTubeApi().then(() => {
-      if (cancelled) return;
+      if (cancelled || !containerRef.current) return;
 
-      clearPlayerElement();
-      const el = document.getElementById(elementId);
-      if (!el) return;
-
-      playerRef.current = new window.YT.Player(elementId, {
+      playerRef.current = new window.YT.Player(containerRef.current, {
         height: "100%",
         width: "100%",
         playerVars: {
@@ -194,13 +187,9 @@ export function YouTubePlayer({ videoId, isHost, onEnded }: Props) {
 
     return () => {
       cancelled = true;
-      syncedVideoIdRef.current = null;
-      setPlayerReady(false);
-      playerRef.current?.destroy();
-      playerRef.current = null;
-      clearPlayerElement();
+      destroyPlayer();
     };
-  }, [isHost, elementId]);
+  }, [isHost]);
 
   useEffect(() => {
     if (!isHost || !videoId || !playerReady) return;
@@ -209,7 +198,7 @@ export function YouTubePlayer({ videoId, isHost, onEnded }: Props) {
 
   return (
     <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-default bg-black">
-      {isHost && <div id={elementId} className="h-full w-full" />}
+      <div ref={containerRef} className={isHost ? "h-full w-full" : "hidden"} aria-hidden={!isHost} />
 
       {!isHost && videoId && (
         <>
