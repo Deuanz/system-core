@@ -7,7 +7,7 @@ import { setDisplayName, useRoom } from "./hooks/useRoom";
 type Props = {
   roomId: string;
   accessCode?: string;
-  onLeave: () => void;
+  onLeave: (options?: { keepInvite?: boolean; error?: string }) => void;
 };
 
 export function DjQueueApp({ roomId, accessCode, onLeave }: Props) {
@@ -34,11 +34,27 @@ export function DjQueueApp({ roomId, accessCode, onLeave }: Props) {
     void loadYouTubeApi();
   }, []);
 
+  useEffect(() => {
+    if (error === "Invalid access code for this private room") {
+      onLeave({ keepInvite: true, error: "Invalid access code. Please try again." });
+    }
+  }, [error, onLeave]);
+
   function saveName() {
     setDisplayName(name);
   }
 
-  const shareUrl = `${window.location.origin}${window.location.pathname}?room=${roomId}`;
+  const shareUrl = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(state?.name ?? roomId)}`;
+
+  useEffect(() => {
+    if (state?.name) {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("room") !== state.name) {
+        url.searchParams.set("room", state.name);
+        window.history.replaceState({}, "", url);
+      }
+    }
+  }, [state?.name]);
 
   return (
     <div className="min-h-screen bg-primary text-primary">
@@ -47,7 +63,7 @@ export function DjQueueApp({ roomId, accessCode, onLeave }: Props) {
           <div>
             <h1 className="text-xl font-bold tracking-tight">i Queuez</h1>
             <p className="text-sm text-muted">
-              Room <span className="font-mono text-violet-300">{roomId}</span>
+              <span className="font-medium text-primary">{state?.name ?? roomId}</span>
               {state?.isPrivate && " · private"}
               {!connected && " · reconnecting..."}
             </p>
@@ -82,7 +98,7 @@ export function DjQueueApp({ roomId, accessCode, onLeave }: Props) {
             )}
             <button
               type="button"
-              onClick={onLeave}
+              onClick={() => onLeave()}
               className="rounded-lg border border-default px-3 py-1.5 text-sm text-muted hover:text-primary"
             >
               Leave

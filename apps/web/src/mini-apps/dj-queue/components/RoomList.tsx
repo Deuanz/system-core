@@ -3,7 +3,7 @@ import type { RoomSummary } from "@system-core/shared-types";
 import { listRooms } from "../hooks/useRoom";
 
 type Props = {
-  onJoin: (roomId: string, accessCode?: string) => void;
+  onJoin: (roomId: string, accessCode?: string, roomName?: string) => void;
 };
 
 export function RoomList({ onJoin }: Props) {
@@ -68,7 +68,7 @@ export function RoomList({ onJoin }: Props) {
           className="flex items-center gap-3 rounded-xl border border-default bg-secondary p-3"
         >
           <div className="min-w-0 flex-1">
-            <p className="font-mono text-sm font-medium text-violet-300">{room.roomId}</p>
+            <p className="truncate text-sm font-medium text-violet-300">{room.name}</p>
             <p className="truncate text-xs text-muted">
               {room.clientCount} {room.clientCount === 1 ? "listener" : "listeners"}
               {room.queueLength > 0 && ` · ${room.queueLength} in queue`}
@@ -77,7 +77,7 @@ export function RoomList({ onJoin }: Props) {
           </div>
           <button
             type="button"
-            onClick={() => onJoin(room.roomId)}
+            onClick={() => onJoin(room.roomId, undefined, room.name)}
             className="shrink-0 rounded-lg border border-violet-500/40 px-3 py-1.5 text-sm text-violet-300 hover:bg-violet-500/10"
           >
             Join

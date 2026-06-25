@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { DjQueueApp } from "./mini-apps/dj-queue/DjQueueApp";
 import { DjQueueHome } from "./mini-apps/dj-queue/DjQueueHome";
 
@@ -7,10 +7,10 @@ function getRoomFromUrl(): string | null {
   return params.get("room");
 }
 
-function setRoomInUrl(roomId: string | null) {
+function setRoomInUrl(roomName: string | null) {
   const url = new URL(window.location.href);
-  if (roomId) {
-    url.searchParams.set("room", roomId);
+  if (roomName) {
+    url.searchParams.set("room", roomName);
   } else {
     url.searchParams.delete("room");
   }
@@ -19,20 +19,28 @@ function setRoomInUrl(roomId: string | null) {
 
 function App() {
   const [roomId, setRoomId] = useState<string | null>(null);
-  const [inviteRoomId] = useState<string | null>(getRoomFromUrl);
   const [accessCode, setAccessCode] = useState<string | undefined>(undefined);
+  const inviteRoomSlug = getRoomFromUrl();
 
-  function joinRoom(id: string, roomAccessCode?: string) {
-    setRoomInUrl(id);
+  const [joinError, setJoinError] = useState<string | null>(null);
+
+  const joinRoom = useCallback((id: string, roomAccessCode?: string, roomName?: string) => {
+    setJoinError(null);
+    setRoomInUrl(roomName ?? id);
     setRoomId(id);
     setAccessCode(roomAccessCode);
-  }
+  }, []);
 
-  function leaveRoom() {
-    setRoomInUrl(null);
+  const leaveRoom = useCallback((options?: { keepInvite?: boolean; error?: string }) => {
+    if (!options?.keepInvite) {
+      setRoomInUrl(null);
+    }
     setRoomId(null);
     setAccessCode(undefined);
-  }
+    if (options?.error) {
+      setJoinError(options.error);
+    }
+  }, []);
 
   if (roomId) {
     return <DjQueueApp roomId={roomId} accessCode={accessCode} onLeave={leaveRoom} />;
@@ -41,8 +49,8 @@ function App() {
   return (
     <DjQueueHome
       onJoin={joinRoom}
-      initialRoomId={inviteRoomId ?? ""}
-      requireAccessCode={Boolean(inviteRoomId)}
+      inviteRoomSlug={inviteRoomSlug ?? undefined}
+      initialError={joinError}
     />
   );
 }

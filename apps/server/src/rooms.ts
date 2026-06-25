@@ -13,6 +13,7 @@ export type RoomSocketData = {
 
 export class Room {
   readonly id: string;
+  readonly name: string;
   readonly isPrivate: boolean;
   private readonly accessCode: string | null;
   queue: QueueItem[] = [];
@@ -22,8 +23,9 @@ export class Room {
   hostClientId: string | null = null;
   pendingHostRequest: HostRequest | null = null;
 
-  constructor(id: string, isPrivate = false, accessCode?: string) {
+  constructor(id: string, name: string, isPrivate = false, accessCode?: string) {
     this.id = id;
+    this.name = name.trim() || id;
     this.isPrivate = isPrivate;
     this.accessCode = accessCode?.trim() ? accessCode.trim() : null;
   }
@@ -35,6 +37,7 @@ export class Room {
   getState(): RoomState {
     return {
       roomId: this.id,
+      name: this.name,
       isPrivate: this.isPrivate,
       queue: this.queue,
       nowPlaying: this.nowPlaying,
@@ -47,6 +50,7 @@ export class Room {
   toSummary(): RoomSummary {
     return {
       roomId: this.id,
+      name: this.name,
       isPrivate: this.isPrivate,
       clientCount: this.clientCount,
       queueLength: this.queue.length,
@@ -191,17 +195,42 @@ export class Room {
 
 const rooms = new Map<string, Room>();
 
+export function getRoom(roomId: string): Room | undefined {
+  return rooms.get(roomId);
+}
+
+export function getRoomByName(name: string): Room | undefined {
+  const normalized = name.trim().toLowerCase();
+  if (!normalized) return undefined;
+
+  for (const room of rooms.values()) {
+    if (room.name.trim().toLowerCase() === normalized) {
+      return room;
+    }
+  }
+  return undefined;
+}
+
+export function resolveRoom(identifier: string): Room | undefined {
+  return getRoom(identifier) ?? getRoomByName(identifier);
+}
+
 export function getOrCreateRoom(roomId: string): Room {
   let room = rooms.get(roomId);
   if (!room) {
-    room = new Room(roomId);
+    room = new Room(roomId, roomId);
     rooms.set(roomId, room);
   }
   return room;
 }
 
-export function createRoom(roomId: string, isPrivate = false, accessCode?: string): Room {
-  const room = new Room(roomId, isPrivate, accessCode);
+export function createRoom(
+  roomId: string,
+  name: string,
+  isPrivate = false,
+  accessCode?: string,
+): Room {
+  const room = new Room(roomId, name, isPrivate, accessCode);
   rooms.set(roomId, room);
   return room;
 }

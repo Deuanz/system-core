@@ -15,6 +15,7 @@ export type HostRequest = {
 
 export type RoomState = {
   roomId: string;
+  name: string;
   isPrivate: boolean;
   queue: QueueItem[];
   nowPlaying: QueueItem | null;
@@ -25,6 +26,7 @@ export type RoomState = {
 
 export type RoomSummary = {
   roomId: string;
+  name: string;
   isPrivate: boolean;
   clientCount: number;
   queueLength: number;

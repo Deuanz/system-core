@@ -4,6 +4,7 @@ import {
   generateRoomId,
   getOrCreateRoom,
   listRooms,
+  resolveRoom,
   type RoomSocketData,
 } from "./rooms";
 import { serveStatic } from "./static";
@@ -37,18 +38,33 @@ Bun.serve<RoomSocketData>({
       return json({ rooms: listRooms() });
     }
 
+    const roomMatch = url.pathname.match(/^\/api\/rooms\/([^/]+)$/);
+    if (roomMatch?.[1] && req.method === "GET") {
+      const identifier = decodeURIComponent(roomMatch[1]);
+      const room = resolveRoom(identifier);
+      if (!room) {
+        return json({ error: "Room not found" }, 404);
+      }
+      return json({ roomId: room.id, name: room.name, isPrivate: room.isPrivate });
+    }
+
     if (url.pathname === "/api/rooms" && req.method === "POST") {
       const payload = (await req.json().catch(() => ({}))) as {
+        name?: string;
         isPrivate?: boolean;
         accessCode?: string;
       };
+      const name = payload.name?.trim();
+      if (!name) {
+        return json({ error: "Room name is required" }, 400);
+      }
       const roomId = generateRoomId();
       const isPrivate = Boolean(payload.isPrivate);
       const accessCode = payload.accessCode?.trim();
       if (isPrivate && !accessCode) {
         return json({ error: "Private rooms require an access code" }, 400);
       }
-      createRoom(roomId, isPrivate, accessCode);
+      createRoom(roomId, name, isPrivate, accessCode);
       return json({ roomId });
     }
 
@@ -71,7 +87,7 @@ Bun.serve<RoomSocketData>({
     }
 
     const wsMatch = url.pathname.match(/^\/ws\/rooms\/([^/]+)$/);
-    if (wsMatch) {
+    if (wsMatch?.[1]) {
       const roomId = wsMatch[1];
       const clientId = url.searchParams.get("clientId") ?? crypto.randomUUID();
 

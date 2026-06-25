@@ -153,11 +153,15 @@ export async function resolveYouTubeUrl(input: string): Promise<YouTubeSearchRes
   return data.video;
 }
 
-export async function createRoom(isPrivate = false, accessCode?: string): Promise<string> {
+export async function createRoom(
+  name: string,
+  isPrivate = false,
+  accessCode?: string,
+): Promise<string> {
   const res = await fetch("/api/rooms", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ isPrivate, accessCode }),
+    body: JSON.stringify({ name, isPrivate, accessCode }),
   });
   const data = (await res.json()) as { roomId?: string; error?: string };
   if (!res.ok || !data.roomId) {
@@ -171,4 +175,17 @@ export async function listRooms(): Promise<RoomSummary[]> {
   const data = (await res.json()) as { rooms?: RoomSummary[]; error?: string };
   if (!res.ok) throw new Error(data.error ?? "Could not load rooms");
   return data.rooms ?? [];
+}
+
+export type RoomInfo = {
+  roomId: string;
+  name: string;
+  isPrivate: boolean;
+};
+
+export async function getRoomInfo(identifier: string): Promise<RoomInfo> {
+  const res = await fetch(`/api/rooms/${encodeURIComponent(identifier)}`);
+  const data = (await res.json()) as RoomInfo & { error?: string };
+  if (!res.ok) throw new Error(data.error ?? "Room not found");
+  return { roomId: data.roomId, name: data.name, isPrivate: data.isPrivate };
 }
