@@ -10,6 +10,7 @@ export type QueueItem = {
 
 export type RoomState = {
   roomId: string;
+  isPrivate: boolean;
   queue: QueueItem[];
   nowPlaying: QueueItem | null;
   isPlaying: boolean;
@@ -18,6 +19,7 @@ export type RoomState = {
 
 export type RoomSummary = {
   roomId: string;
+  isPrivate: boolean;
   clientCount: number;
   queueLength: number;
   nowPlayingTitle: string | null;
@@ -35,6 +37,7 @@ export type WsClientMessage =
       type: "join";
       clientId: string;
       requestedBy: string;
+      accessCode?: string;
     }
   | {
       type: "add_to_queue";

@@ -6,13 +6,14 @@ import { setDisplayName, useRoom } from "./hooks/useRoom";
 
 type Props = {
   roomId: string;
+  accessCode?: string;
   onLeave: () => void;
 };
 
-export function DjQueueApp({ roomId, onLeave }: Props) {
+export function DjQueueApp({ roomId, accessCode, onLeave }: Props) {
   const [name, setName] = useState(() => localStorage.getItem("dj-queue-name") ?? "");
   const { state, isHost, connected, error, addToQueue, skip, trackEnded, becomeHost } =
-    useRoom(roomId);
+    useRoom(roomId, accessCode);
 
   useEffect(() => {
     void loadYouTubeApi();
@@ -32,6 +33,7 @@ export function DjQueueApp({ roomId, onLeave }: Props) {
             <h1 className="text-xl font-bold tracking-tight">i Queuez</h1>
             <p className="text-sm text-muted">
               Room <span className="font-mono text-violet-300">{roomId}</span>
+              {state?.isPrivate && " · private"}
               {!connected && " · reconnecting..."}
             </p>
           </div>

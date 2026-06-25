@@ -3,7 +3,7 @@ import type { RoomSummary } from "@system-core/shared-types";
 import { listRooms } from "../hooks/useRoom";
 
 type Props = {
-  onJoin: (roomId: string) => void;
+  onJoin: (roomId: string, accessCode?: string) => void;
 };
 
 export function RoomList({ onJoin }: Props) {

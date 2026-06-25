@@ -13,14 +13,18 @@ export type RoomSocketData = {
 
 export class Room {
   readonly id: string;
+  readonly isPrivate: boolean;
+  private readonly accessCode: string | null;
   queue: QueueItem[] = [];
   nowPlaying: QueueItem | null = null;
   isPlaying = false;
   private clients = new Map<string, RoomClient>();
   hostClientId: string | null = null;
 
-  constructor(id: string) {
+  constructor(id: string, isPrivate = false, accessCode?: string) {
     this.id = id;
+    this.isPrivate = isPrivate;
+    this.accessCode = accessCode?.trim() ? accessCode.trim() : null;
   }
 
   get clientCount(): number {
@@ -30,6 +34,7 @@ export class Room {
   getState(): RoomState {
     return {
       roomId: this.id,
+      isPrivate: this.isPrivate,
       queue: this.queue,
       nowPlaying: this.nowPlaying,
       isPlaying: this.isPlaying,
@@ -40,13 +45,23 @@ export class Room {
   toSummary(): RoomSummary {
     return {
       roomId: this.id,
+      isPrivate: this.isPrivate,
       clientCount: this.clientCount,
       queueLength: this.queue.length,
       nowPlayingTitle: this.nowPlaying?.title ?? null,
     };
   }
 
-  addClient(ws: ServerWebSocket<RoomSocketData>, clientId: string, requestedBy: string) {
+  addClient(
+    ws: ServerWebSocket<RoomSocketData>,
+    clientId: string,
+    requestedBy: string,
+    accessCode?: string,
+  ): { ok: true } | { ok: false; message: string } {
+    if (this.isPrivate && this.accessCode && accessCode?.trim() !== this.accessCode) {
+      return { ok: false, message: "Invalid access code for this private room" };
+    }
+
     this.clients.set(clientId, { ws, clientId, requestedBy });
 
     if (!this.hostClientId) {
@@ -58,6 +73,7 @@ export class Room {
     }
 
     this.broadcast();
+    return { ok: true };
   }
 
   removeClient(clientId: string) {
@@ -146,13 +162,19 @@ export function getOrCreateRoom(roomId: string): Room {
   return room;
 }
 
+export function createRoom(roomId: string, isPrivate = false, accessCode?: string): Room {
+  const room = new Room(roomId, isPrivate, accessCode);
+  rooms.set(roomId, room);
+  return room;
+}
+
 export function generateRoomId(): string {
   return crypto.randomUUID().slice(0, 8);
 }
 
 export function listRooms(): RoomSummary[] {
   return [...rooms.values()]
-    .filter((room) => room.clientCount > 0)
+    .filter((room) => room.clientCount > 0 && !room.isPrivate)
     .map((room) => room.toSummary())
     .sort((a, b) => b.clientCount - a.clientCount);
 }

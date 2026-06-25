@@ -32,7 +32,7 @@ function wsUrl(roomId: string, clientId: string) {
   return `${protocol}//${window.location.host}/ws/rooms/${roomId}?clientId=${clientId}`;
 }
 
-export function useRoom(roomId: string) {
+export function useRoom(roomId: string, accessCode?: string) {
   const clientId = useRef(getClientId()).current;
   const [state, setState] = useState<RoomState | null>(null);
   const [isHost, setIsHost] = useState(false);
@@ -62,6 +62,7 @@ export function useRoom(roomId: string) {
         type: "join",
         clientId,
         requestedBy: getDisplayName(),
+        accessCode,
       });
       for (const message of pendingRef.current) {
         ws.send(JSON.stringify(message));
@@ -83,7 +84,7 @@ export function useRoom(roomId: string) {
     ws.onerror = () => setError("Connection lost");
 
     return () => ws.close();
-  }, [roomId, clientId, send]);
+  }, [roomId, clientId, send, accessCode]);
 
   const addToQueue = useCallback(
     (video: YouTubeSearchResult) => {
@@ -136,9 +137,16 @@ export async function resolveYouTubeUrl(input: string): Promise<YouTubeSearchRes
   return data.video;
 }
 
-export async function createRoom(): Promise<string> {
-  const res = await fetch("/api/rooms", { method: "POST" });
-  const data = (await res.json()) as { roomId: string };
+export async function createRoom(isPrivate = false, accessCode?: string): Promise<string> {
+  const res = await fetch("/api/rooms", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ isPrivate, accessCode }),
+  });
+  const data = (await res.json()) as { roomId?: string; error?: string };
+  if (!res.ok || !data.roomId) {
+    throw new Error(data.error ?? "Could not create room");
+  }
   return data.roomId;
 }
 

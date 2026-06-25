@@ -18,23 +18,33 @@ function setRoomInUrl(roomId: string | null) {
 }
 
 function App() {
-  const [roomId, setRoomId] = useState<string | null>(getRoomFromUrl);
+  const [roomId, setRoomId] = useState<string | null>(null);
+  const [inviteRoomId] = useState<string | null>(getRoomFromUrl);
+  const [accessCode, setAccessCode] = useState<string | undefined>(undefined);
 
-  function joinRoom(id: string) {
+  function joinRoom(id: string, roomAccessCode?: string) {
     setRoomInUrl(id);
     setRoomId(id);
+    setAccessCode(roomAccessCode);
   }
 
   function leaveRoom() {
     setRoomInUrl(null);
     setRoomId(null);
+    setAccessCode(undefined);
   }
 
   if (roomId) {
-    return <DjQueueApp roomId={roomId} onLeave={leaveRoom} />;
+    return <DjQueueApp roomId={roomId} accessCode={accessCode} onLeave={leaveRoom} />;
   }
 
-  return <DjQueueHome onJoin={joinRoom} />;
+  return (
+    <DjQueueHome
+      onJoin={joinRoom}
+      initialRoomId={inviteRoomId ?? ""}
+      requireAccessCode={Boolean(inviteRoomId)}
+    />
+  );
 }
 
 export default App;

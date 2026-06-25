@@ -1,5 +1,6 @@
 import type { WsClientMessage } from "@system-core/shared-types";
 import {
+  createRoom,
   generateRoomId,
   getOrCreateRoom,
   listRooms,
@@ -37,8 +38,17 @@ Bun.serve<RoomSocketData>({
     }
 
     if (url.pathname === "/api/rooms" && req.method === "POST") {
+      const payload = (await req.json().catch(() => ({}))) as {
+        isPrivate?: boolean;
+        accessCode?: string;
+      };
       const roomId = generateRoomId();
-      getOrCreateRoom(roomId);
+      const isPrivate = Boolean(payload.isPrivate);
+      const accessCode = payload.accessCode?.trim();
+      if (isPrivate && !accessCode) {
+        return json({ error: "Private rooms require an access code" }, 400);
+      }
+      createRoom(roomId, isPrivate, accessCode);
       return json({ roomId });
     }
 
@@ -77,11 +87,7 @@ Bun.serve<RoomSocketData>({
     return new Response("Not found", { status: 404 });
   },
   websocket: {
-    open(ws) {
-      const { roomId, clientId } = ws.data;
-      const room = getOrCreateRoom(roomId);
-      room.addClient(ws, clientId, "Guest");
-    },
+    open() {},
     message(ws, message) {
       const { roomId, clientId } = ws.data;
       const room = getOrCreateRoom(roomId);
@@ -96,7 +102,13 @@ Bun.serve<RoomSocketData>({
 
       switch (parsed.type) {
         case "join":
-          room.addClient(ws, clientId, parsed.requestedBy);
+          if (parsed.clientId !== clientId) break;
+          {
+            const result = room.addClient(ws, clientId, parsed.requestedBy, parsed.accessCode);
+            if (!result.ok) {
+              ws.send(JSON.stringify({ type: "error", message: result.message }));
+            }
+          }
           break;
         case "add_to_queue":
           if (parsed.clientId !== clientId) break;
