@@ -155,7 +155,7 @@ export function DjQueueHome({ onJoin, inviteRoomSlug, initialError = null }: Pro
               onChange={(e) => setPrivateRoom(e.target.checked)}
               className="h-4 w-4 accent-violet-500"
             />
-            Create as private room (hidden from Active rooms)
+            Create as private room (requires access code to join)
           </label>
           {privateRoom && (
             <input

@@ -10,6 +10,7 @@ export function RoomList({ onJoin }: Props) {
   const [rooms, setRooms] = useState<RoomSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [accessCodes, setAccessCodes] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -62,28 +63,55 @@ export function RoomList({ onJoin }: Props) {
 
   return (
     <ul className="space-y-2 text-left">
-      {rooms.map((room) => (
-        <li
-          key={room.roomId}
-          className="flex items-center gap-3 rounded-xl border border-default bg-secondary p-3"
-        >
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-violet-300">{room.name}</p>
-            <p className="truncate text-xs text-muted">
-              {room.clientCount} {room.clientCount === 1 ? "listener" : "listeners"}
-              {room.queueLength > 0 && ` · ${room.queueLength} in queue`}
-              {room.nowPlayingTitle && ` · ${room.nowPlayingTitle}`}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => onJoin(room.roomId, undefined, room.name)}
-            className="shrink-0 rounded-lg border border-violet-500/40 px-3 py-1.5 text-sm text-violet-300 hover:bg-violet-500/10"
+      {rooms.map((room) => {
+        const accessCode = accessCodes[room.roomId] ?? "";
+
+        return (
+          <li
+            key={room.roomId}
+            className="flex flex-col gap-2 rounded-xl border border-default bg-secondary p-3 sm:flex-row sm:items-center"
           >
-            Join
-          </button>
-        </li>
-      ))}
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-violet-300">
+                {room.name}
+                {room.isPrivate && (
+                  <span className="ml-2 rounded-full bg-violet-500/20 px-2 py-0.5 text-xs font-medium text-violet-300">
+                    Private
+                  </span>
+                )}
+              </p>
+              <p className="truncate text-xs text-muted">
+                {room.clientCount} {room.clientCount === 1 ? "listener" : "listeners"}
+                {room.queueLength > 0 && ` · ${room.queueLength} in queue`}
+                {room.nowPlayingTitle && ` · ${room.nowPlayingTitle}`}
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              {room.isPrivate && (
+                <input
+                  type="password"
+                  value={accessCode}
+                  onChange={(e) =>
+                    setAccessCodes((prev) => ({ ...prev, [room.roomId]: e.target.value }))
+                  }
+                  placeholder="Access code"
+                  className="w-full rounded-lg border border-default bg-primary px-3 py-1.5 text-sm focus:border-violet-500 focus:outline-none sm:w-32"
+                />
+              )}
+              <button
+                type="button"
+                onClick={() =>
+                  onJoin(room.roomId, room.isPrivate ? accessCode.trim() : undefined, room.name)
+                }
+                disabled={room.isPrivate && !accessCode.trim()}
+                className="shrink-0 rounded-lg border border-violet-500/40 px-3 py-1.5 text-sm text-violet-300 hover:bg-violet-500/10 disabled:opacity-50"
+              >
+                Join
+              </button>
+            </div>
+          </li>
+        );
+      })}
     </ul>
   );
 }

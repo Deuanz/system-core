@@ -241,7 +241,7 @@ export function generateRoomId(): string {
 
 export function listRooms(): RoomSummary[] {
   return [...rooms.values()]
-    .filter((room) => room.clientCount > 0 && !room.isPrivate)
+    .filter((room) => room.clientCount > 0)
     .map((room) => room.toSummary())
     .sort((a, b) => b.clientCount - a.clientCount);
 }
