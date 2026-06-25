@@ -3,9 +3,11 @@ import type { QueueItem } from "@system-core/shared-types";
 type Props = {
   queue: QueueItem[];
   nowPlayingId: string | null;
+  isHost?: boolean;
+  onRemove?: (itemId: string) => void;
 };
 
-export function QueueList({ queue, nowPlayingId }: Props) {
+export function QueueList({ queue, nowPlayingId, isHost, onRemove }: Props) {
   if (queue.length === 0) {
     return (
       <p className="rounded-lg border border-dashed border-default px-4 py-8 text-center text-sm text-muted">
@@ -37,6 +39,16 @@ export function QueueList({ queue, nowPlayingId }: Props) {
               {item.requestedBy} · {item.channelTitle}
             </p>
           </div>
+          {isHost && onRemove && (
+            <button
+              type="button"
+              onClick={() => onRemove(item.id)}
+              aria-label={`Remove ${item.title} from queue`}
+              className="shrink-0 rounded-lg border border-default px-2 py-1 text-xs text-muted hover:border-red-500/50 hover:text-red-400"
+            >
+              Remove
+            </button>
+          )}
         </li>
       ))}
     </ol>

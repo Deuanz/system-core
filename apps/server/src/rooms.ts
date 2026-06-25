@@ -120,6 +120,17 @@ export class Room {
     return true;
   }
 
+  removeFromQueue(clientId: string, itemId: string): boolean {
+    if (this.hostClientId !== clientId) return false;
+
+    const index = this.queue.findIndex((item) => item.id === itemId);
+    if (index === -1) return false;
+
+    this.queue.splice(index, 1);
+    this.broadcast();
+    return true;
+  }
+
   onTrackEnded(clientId: string): boolean {
     if (this.hostClientId !== clientId) return false;
     this.playNext();

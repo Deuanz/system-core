@@ -20,6 +20,7 @@ export function DjQueueApp({ roomId, accessCode, onLeave }: Props) {
     error,
     addToQueue,
     skip,
+    removeFromQueue,
     trackEnded,
     becomeHost,
     respondHostRequest,
@@ -167,7 +168,12 @@ export function DjQueueApp({ roomId, accessCode, onLeave }: Props) {
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
               Up next ({state?.queue.length ?? 0})
             </h2>
-            <QueueList queue={state?.queue ?? []} nowPlayingId={state?.nowPlaying?.id ?? null} />
+            <QueueList
+              queue={state?.queue ?? []}
+              nowPlayingId={state?.nowPlaying?.id ?? null}
+              isHost={isHost}
+              onRemove={removeFromQueue}
+            />
           </section>
         </aside>
       </main>

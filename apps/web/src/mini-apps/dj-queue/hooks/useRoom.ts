@@ -102,6 +102,13 @@ export function useRoom(roomId: string, accessCode?: string) {
     send({ type: "skip", clientId });
   }, [clientId, send]);
 
+  const removeFromQueue = useCallback(
+    (itemId: string) => {
+      send({ type: "remove_from_queue", clientId, itemId });
+    },
+    [clientId, send],
+  );
+
   const trackEnded = useCallback(() => {
     send({ type: "track_ended", clientId });
   }, [clientId, send]);
@@ -125,6 +132,7 @@ export function useRoom(roomId: string, accessCode?: string) {
     error,
     addToQueue,
     skip,
+    removeFromQueue,
     trackEnded,
     becomeHost,
     respondHostRequest,

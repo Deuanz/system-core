@@ -134,6 +134,16 @@ Bun.serve<RoomSocketData>({
             );
           }
           break;
+        case "remove_from_queue":
+          if (!room.removeFromQueue(clientId, parsed.itemId)) {
+            ws.send(
+              JSON.stringify({
+                type: "error",
+                message: "Only the DJ can remove tracks from the queue",
+              }),
+            );
+          }
+          break;
         case "become_host":
           if (!room.becomeHost(clientId, parsed.requestedBy)) {
             ws.send(
