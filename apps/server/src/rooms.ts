@@ -1,4 +1,5 @@
 import type { HostRequest, QueueItem, RoomState, RoomSummary } from "@system-core/shared-types";
+import type { ServerWebSocket } from "bun";
 
 type RoomClient = {
   ws: ServerWebSocket<RoomSocketData>;
@@ -230,6 +231,9 @@ export function createRoom(
   isPrivate = false,
   accessCode?: string,
 ): Room {
+  if (getRoomByName(name)) {
+    throw new Error("A room with this name already exists");
+  }
   const room = new Room(roomId, name, isPrivate, accessCode);
   rooms.set(roomId, room);
   return room;
@@ -241,7 +245,18 @@ export function generateRoomId(): string {
 
 export function listRooms(): RoomSummary[] {
   return [...rooms.values()]
-    .filter((room) => room.clientCount > 0)
     .map((room) => room.toSummary())
-    .sort((a, b) => b.clientCount - a.clientCount);
+    .sort((a, b) => b.clientCount - a.clientCount || a.name.localeCompare(b.name));
+}
+
+export function deleteRoom(identifier: string): { ok: true } | { ok: false; status: number; message: string } {
+  const room = resolveRoom(identifier);
+  if (!room) {
+    return { ok: false, status: 404, message: "Room not found" };
+  }
+  if (room.clientCount > 0) {
+    return { ok: false, status: 409, message: "Cannot remove a room while people are in it" };
+  }
+  rooms.delete(room.id);
+  return { ok: true };
 }

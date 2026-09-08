@@ -72,8 +72,8 @@ export function DjQueueHome({ onJoin, inviteRoomSlug, initialError = null }: Pro
     try {
       const roomId = await createRoom(name, privateRoom, accessCode || undefined);
       onJoin(roomId, accessCode || undefined, name);
-    } catch {
-      setError("Could not create room. Check server and access code.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not create room. Check server and access code.");
     } finally {
       setLoading(false);
     }
@@ -177,10 +177,7 @@ export function DjQueueHome({ onJoin, inviteRoomSlug, initialError = null }: Pro
           </button>
         </div>
 
-        <section className="space-y-3 text-left">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Active rooms</h2>
-          <RoomList onJoin={onJoin} />
-        </section>
+        <RoomList onJoin={onJoin} />
 
         {error && <p className="text-sm text-red-400">{error}</p>}
 

@@ -177,6 +177,12 @@ export async function listRooms(): Promise<RoomSummary[]> {
   return data.rooms ?? [];
 }
 
+export async function deleteRoom(roomId: string): Promise<void> {
+  const res = await fetch(`/api/rooms/${encodeURIComponent(roomId)}`, { method: "DELETE" });
+  const data = (await res.json()) as { error?: string };
+  if (!res.ok) throw new Error(data.error ?? "Could not remove room");
+}
+
 export type RoomInfo = {
   roomId: string;
   name: string;

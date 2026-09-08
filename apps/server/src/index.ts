@@ -1,6 +1,7 @@
 import type { WsClientMessage } from "@system-core/shared-types";
 import {
   createRoom,
+  deleteRoom,
   generateRoomId,
   getOrCreateRoom,
   listRooms,
@@ -14,7 +15,7 @@ const PORT = Number(process.env.PORT ?? 3001);
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
@@ -48,6 +49,15 @@ Bun.serve<RoomSocketData>({
       return json({ roomId: room.id, name: room.name, isPrivate: room.isPrivate });
     }
 
+    if (roomMatch?.[1] && req.method === "DELETE") {
+      const identifier = decodeURIComponent(roomMatch[1]);
+      const result = deleteRoom(identifier);
+      if (!result.ok) {
+        return json({ error: result.message }, result.status);
+      }
+      return json({ ok: true });
+    }
+
     if (url.pathname === "/api/rooms" && req.method === "POST") {
       const payload = (await req.json().catch(() => ({}))) as {
         name?: string;
@@ -58,13 +68,21 @@ Bun.serve<RoomSocketData>({
       if (!name) {
         return json({ error: "Room name is required" }, 400);
       }
+      if (resolveRoom(name)) {
+        return json({ error: "A room with this name already exists" }, 409);
+      }
       const roomId = generateRoomId();
       const isPrivate = Boolean(payload.isPrivate);
       const accessCode = payload.accessCode?.trim();
       if (isPrivate && !accessCode) {
         return json({ error: "Private rooms require an access code" }, 400);
       }
-      createRoom(roomId, name, isPrivate, accessCode);
+      try {
+        createRoom(roomId, name, isPrivate, accessCode);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Could not create room";
+        return json({ error: message }, 409);
+      }
       return json({ roomId });
     }
 
