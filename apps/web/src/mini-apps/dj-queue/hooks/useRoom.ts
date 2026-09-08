@@ -19,12 +19,18 @@ function getClientId(): string {
   return id;
 }
 
-function getDisplayName(): string {
-  return localStorage.getItem(NAME_KEY) ?? "Guest";
+export function getDisplayName(): string {
+  return localStorage.getItem(NAME_KEY)?.trim() ?? "";
+}
+
+export function hasDisplayName(): boolean {
+  return getDisplayName().length > 0;
 }
 
 export function setDisplayName(name: string) {
-  localStorage.setItem(NAME_KEY, name.trim() || "Guest");
+  const trimmed = name.trim();
+  if (!trimmed) return;
+  localStorage.setItem(NAME_KEY, trimmed);
 }
 
 function wsUrl(roomId: string, clientId: string) {

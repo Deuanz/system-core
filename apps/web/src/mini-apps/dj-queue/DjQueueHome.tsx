@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
+import { DisplayNameDialog } from "./components/DisplayNameDialog";
 import { RoomList } from "./components/RoomList";
-import { createRoom, getRoomInfo, type RoomInfo } from "./hooks/useRoom";
+import {
+  createRoom,
+  getRoomInfo,
+  hasDisplayName,
+  setDisplayName,
+  type RoomInfo,
+} from "./hooks/useRoom";
 
 type Props = {
   onJoin: (roomId: string, accessCode?: string, roomName?: string) => void;
@@ -8,12 +15,17 @@ type Props = {
   initialError?: string | null;
 };
 
+type PendingAction =
+  | { type: "join"; roomId: string; accessCode?: string; roomName?: string }
+  | { type: "create" };
+
 export function DjQueueHome({ onJoin, inviteRoomSlug, initialError = null }: Props) {
   const [roomName, setRoomName] = useState("");
   const [createAccessCode, setCreateAccessCode] = useState("");
   const [privateRoom, setPrivateRoom] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(initialError);
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
 
   const [inviteRoom, setInviteRoom] = useState<RoomInfo | null>(null);
   const [inviteLoading, setInviteLoading] = useState(Boolean(inviteRoomSlug));
@@ -36,7 +48,7 @@ export function DjQueueHome({ onJoin, inviteRoomSlug, initialError = null }: Pro
         const info = await getRoomInfo(slug);
         if (cancelled) return;
         setInviteRoom(info);
-        if (!info.isPrivate) {
+        if (!info.isPrivate && hasDisplayName()) {
           onJoin(info.roomId, undefined, info.name);
         }
       } catch {
@@ -56,7 +68,15 @@ export function DjQueueHome({ onJoin, inviteRoomSlug, initialError = null }: Pro
     };
   }, [inviteRoomSlug, onJoin]);
 
-  async function handleCreate() {
+  function requestJoin(roomId: string, accessCode?: string, roomNameToJoin?: string) {
+    if (hasDisplayName()) {
+      onJoin(roomId, accessCode, roomNameToJoin);
+      return;
+    }
+    setPendingAction({ type: "join", roomId, accessCode, roomName: roomNameToJoin });
+  }
+
+  async function createAndJoin() {
     const name = roomName.trim();
     if (!name) {
       setError("Please enter a room name");
@@ -79,16 +99,47 @@ export function DjQueueHome({ onJoin, inviteRoomSlug, initialError = null }: Pro
     }
   }
 
-  function handlePrivateJoin(e: React.FormEvent) {
+  async function handleCreate() {
+    const name = roomName.trim();
+    if (!name) {
+      setError("Please enter a room name");
+      return;
+    }
+    const accessCode = createAccessCode.trim();
+    if (privateRoom && !accessCode) {
+      setError("Please set an access code for private rooms");
+      return;
+    }
+    if (hasDisplayName()) {
+      await createAndJoin();
+      return;
+    }
+    setPendingAction({ type: "create" });
+  }
+
+  function handleInviteJoin(e: React.FormEvent) {
     e.preventDefault();
     if (!inviteRoom) return;
     const code = joinAccessCode.trim();
-    if (!code) {
+    if (inviteRoom.isPrivate && !code) {
       setError("Please enter the access code");
       return;
     }
     setError(null);
-    onJoin(inviteRoom.roomId, code, inviteRoom.name);
+    requestJoin(inviteRoom.roomId, inviteRoom.isPrivate ? code : undefined, inviteRoom.name);
+  }
+
+  function handleNameConfirm(name: string) {
+    const action = pendingAction;
+    setDisplayName(name);
+    setPendingAction(null);
+    if (action?.type === "join") {
+      onJoin(action.roomId, action.accessCode, action.roomName);
+      return;
+    }
+    if (action?.type === "create") {
+      void createAndJoin();
+    }
   }
 
   return (
@@ -110,27 +161,33 @@ export function DjQueueHome({ onJoin, inviteRoomSlug, initialError = null }: Pro
           </p>
         )}
 
-        {inviteRoom?.isPrivate && (
+        {inviteRoom && (
           <section className="space-y-3 rounded-xl border border-violet-500/30 bg-violet-500/10 p-4 text-left">
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-violet-300">
-                Private room
+                {inviteRoom.isPrivate ? "Private room" : "Room invite"}
               </p>
               <p className="mt-1 font-medium">{inviteRoom.name}</p>
-              <p className="mt-1 text-sm text-muted">Enter the access code to join this room.</p>
+              <p className="mt-1 text-sm text-muted">
+                {inviteRoom.isPrivate
+                  ? "Enter the access code to join this room."
+                  : "Join this room to start listening."}
+              </p>
             </div>
-            <form onSubmit={handlePrivateJoin} className="space-y-2">
-              <input
-                type="password"
-                value={joinAccessCode}
-                onChange={(e) => setJoinAccessCode(e.target.value)}
-                placeholder="Access code"
-                autoFocus
-                className="w-full rounded-xl border border-default bg-secondary px-4 py-3 focus:border-violet-500 focus:outline-none"
-              />
+            <form onSubmit={handleInviteJoin} className="space-y-2">
+              {inviteRoom.isPrivate && (
+                <input
+                  type="password"
+                  value={joinAccessCode}
+                  onChange={(e) => setJoinAccessCode(e.target.value)}
+                  placeholder="Access code"
+                  autoFocus
+                  className="w-full rounded-xl border border-default bg-secondary px-4 py-3 focus:border-violet-500 focus:outline-none"
+                />
+              )}
               <button
                 type="submit"
-                disabled={!joinAccessCode.trim()}
+                disabled={inviteRoom.isPrivate && !joinAccessCode.trim()}
                 className="w-full rounded-xl bg-violet-600 py-3 font-semibold text-white hover:bg-violet-500 disabled:opacity-50"
               >
                 Join room
@@ -169,7 +226,7 @@ export function DjQueueHome({ onJoin, inviteRoomSlug, initialError = null }: Pro
 
           <button
             type="button"
-            onClick={handleCreate}
+            onClick={() => void handleCreate()}
             disabled={loading || !roomName.trim()}
             className="w-full rounded-xl bg-violet-600 py-3 font-semibold text-white hover:bg-violet-500 disabled:opacity-50"
           >
@@ -177,7 +234,7 @@ export function DjQueueHome({ onJoin, inviteRoomSlug, initialError = null }: Pro
           </button>
         </div>
 
-        <RoomList onJoin={onJoin} />
+        <RoomList onJoin={requestJoin} />
 
         {error && <p className="text-sm text-red-400">{error}</p>}
 
@@ -186,6 +243,12 @@ export function DjQueueHome({ onJoin, inviteRoomSlug, initialError = null }: Pro
           the server and web app.
         </p>
       </div>
+
+      <DisplayNameDialog
+        open={pendingAction !== null}
+        onCancel={() => setPendingAction(null)}
+        onConfirm={handleNameConfirm}
+      />
     </div>
   );
 }

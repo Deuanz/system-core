@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { QueueList } from "./components/QueueList";
 import { SearchBar } from "./components/SearchBar";
 import { loadYouTubeApi, YouTubePlayer } from "./components/YouTubePlayer";
-import { setDisplayName, useRoom } from "./hooks/useRoom";
+import { getDisplayName, useRoom } from "./hooks/useRoom";
 
 type Props = {
   roomId: string;
@@ -11,7 +11,7 @@ type Props = {
 };
 
 export function DjQueueApp({ roomId, accessCode, onLeave }: Props) {
-  const [name, setName] = useState(() => localStorage.getItem("dj-queue-name") ?? "");
+  const displayName = getDisplayName();
   const {
     clientId,
     state,
@@ -40,10 +40,6 @@ export function DjQueueApp({ roomId, accessCode, onLeave }: Props) {
     }
   }, [error, onLeave]);
 
-  function saveName() {
-    setDisplayName(name);
-  }
-
   const shareUrl = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(state?.name ?? roomId)}`;
 
   useEffect(() => {
@@ -69,14 +65,11 @@ export function DjQueueApp({ roomId, accessCode, onLeave }: Props) {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onBlur={saveName}
-              placeholder="Your name"
-              className="rounded-lg border border-default bg-primary px-3 py-1.5 text-sm focus:border-violet-500 focus:outline-none"
-            />
+            {displayName && (
+              <span className="rounded-lg border border-default px-3 py-1.5 text-sm text-muted">
+                {displayName}
+              </span>
+            )}
             {!isHost && !hasPendingRequest && !pendingRequest && (
               <button
                 type="button"

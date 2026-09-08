@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { DjQueueApp } from "./mini-apps/dj-queue/DjQueueApp";
 import { DjQueueHome } from "./mini-apps/dj-queue/DjQueueHome";
+import { hasDisplayName } from "./mini-apps/dj-queue/hooks/useRoom";
 
 function getRoomFromUrl(): string | null {
   const params = new URLSearchParams(window.location.search);
@@ -25,6 +26,10 @@ function App() {
   const [joinError, setJoinError] = useState<string | null>(null);
 
   const joinRoom = useCallback((id: string, roomAccessCode?: string, roomName?: string) => {
+    if (!hasDisplayName()) {
+      setJoinError("Please set your display name before joining a room");
+      return;
+    }
     setJoinError(null);
     setRoomInUrl(roomName ?? id);
     setRoomId(id);
