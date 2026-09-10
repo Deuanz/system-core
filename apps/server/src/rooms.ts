@@ -1,4 +1,11 @@
-import type { HostRequest, QueueItem, RoomState, RoomSummary } from "@system-core/shared-types";
+import {
+  isOpenDjRoom,
+  OPEN_DJ_ROOM_NAME,
+  type HostRequest,
+  type QueueItem,
+  type RoomState,
+  type RoomSummary,
+} from "@system-core/shared-types";
 import type { ServerWebSocket } from "bun";
 
 type RoomClient = {
@@ -146,7 +153,7 @@ export class Room {
     if (!this.clients.has(clientId)) return false;
     if (this.hostClientId === clientId) return true;
 
-    if (!this.hostClientId) {
+    if (!this.hostClientId || this.allowsOpenDjSeat()) {
       this.hostClientId = clientId;
       this.pendingHostRequest = null;
       this.broadcast();
@@ -156,6 +163,10 @@ export class Room {
     this.pendingHostRequest = { clientId, requestedBy };
     this.broadcast();
     return true;
+  }
+
+  allowsOpenDjSeat(): boolean {
+    return isOpenDjRoom(this.name) || isOpenDjRoom(this.id);
   }
 
   respondHostRequest(hostClientId: string, approved: boolean): boolean {
@@ -246,7 +257,12 @@ export function generateRoomId(): string {
 export function listRooms(): RoomSummary[] {
   return [...rooms.values()]
     .map((room) => room.toSummary())
-    .sort((a, b) => b.clientCount - a.clientCount || a.name.localeCompare(b.name));
+    .sort((a, b) => {
+      const aOpen = isOpenDjRoom(a.name) || isOpenDjRoom(a.roomId) ? 1 : 0;
+      const bOpen = isOpenDjRoom(b.name) || isOpenDjRoom(b.roomId) ? 1 : 0;
+      if (aOpen !== bOpen) return bOpen - aOpen;
+      return b.clientCount - a.clientCount || a.name.localeCompare(b.name);
+    });
 }
 
 export function deleteRoom(identifier: string): { ok: true } | { ok: false; status: number; message: string } {
@@ -254,9 +270,19 @@ export function deleteRoom(identifier: string): { ok: true } | { ok: false; stat
   if (!room) {
     return { ok: false, status: 404, message: "Room not found" };
   }
+  if (room.allowsOpenDjSeat()) {
+    return { ok: false, status: 403, message: "The 101x room cannot be removed" };
+  }
   if (room.clientCount > 0) {
     return { ok: false, status: 409, message: "Cannot remove a room while people are in it" };
   }
   rooms.delete(room.id);
   return { ok: true };
 }
+
+export function ensureOpenDjRoom() {
+  if (resolveRoom(OPEN_DJ_ROOM_NAME)) return;
+  createRoom(OPEN_DJ_ROOM_NAME, OPEN_DJ_ROOM_NAME);
+}
+
+ensureOpenDjRoom();

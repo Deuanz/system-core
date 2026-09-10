@@ -1,3 +1,4 @@
+import { isOpenDjRoom } from "@system-core/shared-types";
 import { useEffect } from "react";
 import { QueueList } from "./components/QueueList";
 import { SearchBar } from "./components/SearchBar";
@@ -29,6 +30,7 @@ export function DjQueueApp({ roomId, accessCode, onLeave }: Props) {
   const pendingRequest = state?.pendingHostRequest ?? null;
   const hasPendingRequest = pendingRequest?.clientId === clientId;
   const hostHasPendingRequest = isHost && pendingRequest !== null;
+  const openDjSeat = isOpenDjRoom(state?.name ?? roomId);
 
   useEffect(() => {
     void loadYouTubeApi();
@@ -60,6 +62,7 @@ export function DjQueueApp({ roomId, accessCode, onLeave }: Props) {
             <h1 className="text-xl font-bold tracking-tight">i Queuez</h1>
             <p className="text-sm text-muted">
               <span className="font-medium text-primary">{state?.name ?? roomId}</span>
+              {openDjSeat && " · open DJ seat"}
               {state?.isPrivate && " · private"}
               {!connected && " · reconnecting..."}
             </p>
@@ -76,7 +79,7 @@ export function DjQueueApp({ roomId, accessCode, onLeave }: Props) {
                 onClick={becomeHost}
                 className="rounded-lg border border-violet-500/40 px-3 py-1.5 text-sm text-violet-300 hover:bg-violet-500/10"
               >
-                Become DJ
+                {openDjSeat ? "Take DJ seat" : "Become DJ"}
               </button>
             )}
             {!isHost && hasPendingRequest && (

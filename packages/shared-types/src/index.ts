@@ -1,3 +1,9 @@
+export const OPEN_DJ_ROOM_NAME = "101x";
+
+export function isOpenDjRoom(nameOrId: string): boolean {
+  return nameOrId.trim().toLowerCase() === OPEN_DJ_ROOM_NAME.toLowerCase();
+}
+
 export type QueueItem = {
   id: string;
   videoId: string;

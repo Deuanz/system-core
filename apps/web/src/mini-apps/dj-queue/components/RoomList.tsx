@@ -1,5 +1,5 @@
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
-import type { RoomSummary } from "@system-core/shared-types";
+import { isOpenDjRoom, type RoomSummary } from "@system-core/shared-types";
 import { deleteRoom, listRooms } from "../hooks/useRoom";
 
 type Props = {
@@ -67,8 +67,10 @@ export function RoomList({ onJoin }: Props) {
     return <p className="text-center text-sm text-red-400">{error}</p>;
   }
 
-  const activeRooms = rooms.filter((room) => room.clientCount > 0);
-  const inactiveRooms = rooms.filter((room) => room.clientCount === 0);
+  const featuredRooms = rooms.filter((room) => isOpenDjRoom(room.name) || isOpenDjRoom(room.roomId));
+  const regularRooms = rooms.filter((room) => !isOpenDjRoom(room.name) && !isOpenDjRoom(room.roomId));
+  const activeRooms = regularRooms.filter((room) => room.clientCount > 0);
+  const inactiveRooms = regularRooms.filter((room) => room.clientCount === 0);
 
   if (rooms.length === 0) {
     return (
@@ -81,6 +83,16 @@ export function RoomList({ onJoin }: Props) {
   return (
     <div className="space-y-6">
       {error && <p className="text-center text-sm text-red-400">{error}</p>}
+      {featuredRooms.length > 0 && (
+        <RoomSection
+          title="Special room"
+          emptyLabel=""
+          rooms={featuredRooms}
+          accessCodes={accessCodes}
+          setAccessCodes={setAccessCodes}
+          onJoin={onJoin}
+        />
+      )}
       <RoomSection
         title="Active rooms"
         emptyLabel="No one is in a room right now"
@@ -136,11 +148,14 @@ function RoomSection({
           {rooms.map((room) => {
             const accessCode = accessCodes[room.roomId] ?? "";
             const removing = removingId === room.roomId;
+            const openDj = isOpenDjRoom(room.name) || isOpenDjRoom(room.roomId);
 
             return (
               <li
                 key={room.roomId}
-                className="flex flex-col gap-2 rounded-xl border border-default bg-secondary p-3 sm:flex-row sm:items-center"
+                className={`flex flex-col gap-2 rounded-xl border p-3 sm:flex-row sm:items-center ${
+                  openDj ? "border-amber-500/40 bg-amber-500/5" : "border-default bg-secondary"
+                }`}
               >
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-violet-300">
@@ -150,9 +165,18 @@ function RoomSection({
                         Private
                       </span>
                     )}
+                    {openDj && (
+                      <span className="ml-2 rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-medium text-amber-300">
+                        Open DJ
+                      </span>
+                    )}
                   </p>
                   <p className="truncate text-xs text-muted">
-                    {room.clientCount} {room.clientCount === 1 ? "listener" : "listeners"}
+                    {openDj
+                      ? "Take the DJ seat anytime — no approval needed"
+                      : `${room.clientCount} ${room.clientCount === 1 ? "listener" : "listeners"}`}
+                    {openDj &&
+                      ` · ${room.clientCount} ${room.clientCount === 1 ? "listener" : "listeners"}`}
                     {room.queueLength > 0 && ` · ${room.queueLength} in queue`}
                     {room.nowPlayingTitle && ` · ${room.nowPlayingTitle}`}
                   </p>
@@ -179,7 +203,7 @@ function RoomSection({
                   >
                     Join
                   </button>
-                  {onRemove && (
+                  {onRemove && !openDj && (
                     <button
                       type="button"
                       onClick={() => onRemove(room.roomId)}

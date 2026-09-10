@@ -1,4 +1,4 @@
-import type { WsClientMessage } from "@system-core/shared-types";
+import { isOpenDjRoom, type WsClientMessage } from "@system-core/shared-types";
 import {
   createRoom,
   deleteRoom,
@@ -67,6 +67,9 @@ Bun.serve<RoomSocketData>({
       const name = payload.name?.trim();
       if (!name) {
         return json({ error: "Room name is required" }, 400);
+      }
+      if (isOpenDjRoom(name)) {
+        return json({ error: "101x is a reserved special room" }, 409);
       }
       if (resolveRoom(name)) {
         return json({ error: "A room with this name already exists" }, 409);
