@@ -143,6 +143,17 @@ export class Room {
     return true;
   }
 
+  clearQueue(clientId: string): boolean {
+    if (this.hostClientId !== clientId) return false;
+    if (this.queue.length === 0 && !this.nowPlaying) return true;
+
+    this.queue = [];
+    this.nowPlaying = null;
+    this.isPlaying = false;
+    this.broadcast();
+    return true;
+  }
+
   onTrackEnded(clientId: string): boolean {
     if (this.hostClientId !== clientId) return false;
     this.playNext();

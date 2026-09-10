@@ -1,5 +1,15 @@
 import { isOpenDjRoom } from "@system-core/shared-types";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { QueueList } from "./components/QueueList";
 import { SearchBar } from "./components/SearchBar";
 import { loadYouTubeApi, YouTubePlayer } from "./components/YouTubePlayer";
@@ -22,11 +32,13 @@ export function DjQueueApp({ roomId, accessCode, onLeave }: Props) {
     addToQueue,
     skip,
     removeFromQueue,
+    clearQueue,
     trackEnded,
     becomeHost,
     respondHostRequest,
   } = useRoom(roomId, accessCode);
 
+  const [confirmClear, setConfirmClear] = useState(false);
   const pendingRequest = state?.pendingHostRequest ?? null;
   const hasPendingRequest = pendingRequest?.clientId === clientId;
   const hostHasPendingRequest = isHost && pendingRequest !== null;
@@ -177,9 +189,20 @@ export function DjQueueApp({ roomId, accessCode, onLeave }: Props) {
           </section>
 
           <section>
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
-              Up next ({state?.queue.length ?? 0})
-            </h2>
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+                Up next ({state?.queue.length ?? 0})
+              </h2>
+              {isHost && ((state?.queue.length ?? 0) > 0 || state?.nowPlaying) && (
+                <button
+                  type="button"
+                  onClick={() => setConfirmClear(true)}
+                  className="shrink-0 rounded-lg border border-default px-2 py-1 text-xs text-muted hover:border-red-500/50 hover:text-red-400"
+                >
+                  Clear all
+                </button>
+              )}
+            </div>
             <QueueList
               queue={state?.queue ?? []}
               nowPlayingId={state?.nowPlaying?.id ?? null}
@@ -189,6 +212,29 @@ export function DjQueueApp({ roomId, accessCode, onLeave }: Props) {
           </section>
         </aside>
       </main>
+
+      <AlertDialog open={confirmClear} onOpenChange={setConfirmClear}>
+        <AlertDialogContent className="max-w-sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear all songs?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This removes the queue and stops what is playing now. Use this if the room is stuck.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 text-white hover:bg-red-500"
+              onClick={() => {
+                clearQueue();
+                setConfirmClear(false);
+              }}
+            >
+              Clear all
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

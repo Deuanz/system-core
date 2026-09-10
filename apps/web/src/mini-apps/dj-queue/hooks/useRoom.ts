@@ -115,6 +115,10 @@ export function useRoom(roomId: string, accessCode?: string) {
     [clientId, send],
   );
 
+  const clearQueue = useCallback(() => {
+    send({ type: "clear_queue", clientId });
+  }, [clientId, send]);
+
   const trackEnded = useCallback(() => {
     send({ type: "track_ended", clientId });
   }, [clientId, send]);
@@ -139,6 +143,7 @@ export function useRoom(roomId: string, accessCode?: string) {
     addToQueue,
     skip,
     removeFromQueue,
+    clearQueue,
     trackEnded,
     becomeHost,
     respondHostRequest,

@@ -25,6 +25,7 @@ declare namespace YT {
     );
     loadVideoById(videoId: string): void;
     playVideo(): void;
+    stopVideo(): void;
     getPlayerState(): number;
     destroy(): void;
   }
@@ -192,7 +193,14 @@ export function YouTubePlayer({ videoId, isHost, onEnded }: Props) {
   }, [isHost]);
 
   useEffect(() => {
-    if (!isHost || !videoId || !playerReady) return;
+    if (!isHost || !playerReady) return;
+    if (!videoId) {
+      playerRef.current?.stopVideo();
+      syncedVideoIdRef.current = null;
+      setNeedsPlayTap(false);
+      setPlayerError(null);
+      return;
+    }
     syncVideo();
   }, [videoId, isHost, playerReady]);
 

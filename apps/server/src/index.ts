@@ -181,6 +181,16 @@ Bun.serve<RoomSocketData>({
             );
           }
           break;
+        case "clear_queue":
+          if (!room.clearQueue(clientId)) {
+            ws.send(
+              JSON.stringify({
+                type: "error",
+                message: "Only the DJ can clear the queue",
+              }),
+            );
+          }
+          break;
         case "become_host":
           if (!room.becomeHost(clientId, parsed.requestedBy)) {
             ws.send(

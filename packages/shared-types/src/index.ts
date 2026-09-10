@@ -62,6 +62,7 @@ export type WsClientMessage =
   | { type: "track_ended"; clientId: string }
   | { type: "skip"; clientId: string }
   | { type: "remove_from_queue"; clientId: string; itemId: string }
+  | { type: "clear_queue"; clientId: string }
   | { type: "become_host"; clientId: string; requestedBy: string }
   | { type: "respond_host_request"; clientId: string; approved: boolean };
 
